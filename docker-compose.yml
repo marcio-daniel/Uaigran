@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  mssqldata:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    entrypoint: /bin/bash
+    
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    ports:
+      - 1433:1433
+    volumes:
+      - /var/opt/mssql
+      - ./:/usr/src/app
+    working_dir: /usr/src/app
+    command: sh -c ' chmod +x ./entrypoint.sh; ./entrypoint.sh & /opt/mssql/bin/sqlservr;'
+    environment:
+      ACCEPT_EULA: Y
+      SA_PASSWORD: 1q2w3e4r!#%
+    volumes_from:
+      - mssqldata
+
+  localstack:
+    image: localstack/localstack
+    container_name: localstack_uaigran
+    ports:
+      - "4566:4566"
+      - "4510-4559:4510-4559"
+      - "8055:8080"
+    environment:
+      - SERVICES=s3
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+    volumes:
+      - ./tmp/localstack:/tmp/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
