@@ -1,218 +1,105 @@
-# Documentação Técnica e Funcional do Software Uaigran
+# Documentação do Software Uaigran
 
-## Resumo Funcional
+## Resumo do Software
+O software Uaigran é uma aplicação para gerenciar uma rede social, fornecendo meios para autenticação de usuários, criação e manuseio de postagens, comentários, likes e relações de amizade. A aplicação utiliza o framework Spring Boot e integra serviços como AWS S3 para armazenamento de arquivos, além de configurações de segurança com autenticação JWT.
 
-O software Uaigran é uma aplicação de rede social desenvolvida utilizando o Spring Framework, que inclui funcionalidades como autenticação de usuários, operações CRUD (Create, Read, Update e Delete) em posts, comentários, amigos e curtidas. A aplicação usa AWS S3 para o armazenamento de arquivos e oferece uma configuração de segurança robusta usando o Spring Security. A integração com Swagger permite a documentação automática da API.
+## Documentação Técnica
 
-### Funcionalidades Principais:
-- **Autenticação de Usuários:** Realiza autenticação gerando um token JWT para acesso.
-- **Gerenciamento de Posts:** Os usuários podem criar, ler, atualizar e deletar posts.
-- **Gerenciamento de Comentários:** Permite adicionar, atualizar listar e deletar comentários em posts.
-- **Sistema de Amizades:** Facilita a adição, remoção e listagem de amigos.
-- **Sistema de Curtidas:** Os usuários podem curtir e descurtir posts.
-- **Upload de Arquivos:** Usa AWS S3 para upload e armazenamento de fotos.
+### Arquitetura e Configurações
+#### [src/main/java/com/uaigran/UaigranApplication.java](src/main/java/com/uaigran/UaigranApplication.java)
+O ponto de entrada da aplicação Spring Boot que configura a aplicação com os seguintes componentes:
+- `@SpringBootApplication`: Marca a classe como uma aplicação Spring Boot.
+- `@EnableJpaRepositories`: Habilita a criação de repositórios JPA.
+- `@EntityScan`: Habilita a varredura de entidades do pacote especificado.
+- `@ComponentScan`: Define o pacote base para a varredura dos componentes.
 
-### Público Alvo:
-Esta documentação é direcionada a desenvolvedores que desejam entender a implementação técnica do software, contribuidores para o projeto, e qualquer um interessado em explorar ou estender as funcionalidades do sistema Uaigran.
+#### [src/main/java/com/uaigran/config/AwsConfig.java](src/main/java/com/uaigran/config/AwsConfig.java)
+Configuração da integração com AWS S3:
+- `amazonS3()`: Configura o cliente S3 com credenciais e endpoint locais para desenvolvimento.
 
----
+#### [src/main/java/com/uaigran/config/SecurityConfigurations.java](src/main/java/com/uaigran/config/SecurityConfigurations.java)
+Configuração de segurança com Spring Security:
+- Define endpoints públicos e protegidos, configura CORS, e define um filtro de autenticação JWT.
 
-## Descrição Técnica
+#### [src/main/java/com/uaigran/config/SwaggerConfiguration.java](src/main/java/com/uaigran/config/SwaggerConfiguration.java)
+Configuração do Swagger para documentação da API:
+- Configurações básicas do OpenAPI, incluindo a definição do servidor de desenvolvimento e informações da API.
 
-### Estrutura de Arquivos
+### Controladores REST
+Os controladores são responsáveis por gerenciar as requisições HTTP e são estruturados com endpoints específicos para operações CRUD de diferentes entidades da aplicação. A seguir são listados os principais controladores:
 
-1. **`src/main/java/com/uaigran/UaigranApplication.java`**
-   ```java
-   @SpringBootApplication
-   @EnableJpaRepositories("com.uaigran.models.repository")
-   @ComponentScan(basePackages = { "com.uaigran" })
-   @EntityScan("com.uaigran.models.entities")
-   public class UaigranApplication {
-       public static void main(String[] args) {
-           SpringApplication.run(UaigranApplication.class, args);
-       }
-   }
-   ```
+#### [src/main/java/com/uaigran/controllers/AuthenticationController.java](src/main/java/com/uaigran/controllers/AuthenticationController.java)
+- Operações:
+  - `POST /authenticate`: Autentica o usuário e retorna um token JWT.
 
-2. **Configurações de AWS (`src/main/java/com/uaigran/config/AwsConfig.java`)**
-   ```java
-   @Configuration
-   public class AwsConfig {
-       @Bean
-       public AmazonS3 amazonS3() {
-           return AmazonS3ClientBuilder
-               .standard()
-               .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials("uaigran", "uaigran")))
-               .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("http://s3.localhost.localstack.cloud:4566", Regions.US_WEST_2.getName()))
-               .build();
-       }
-   }
-   ```
+#### [src/main/java/com/uaigran/controllers/CommentController.java](src/main/java/com/uaigran/controllers/CommentController.java)
+- Operações:
+  - `POST /comment/create`: Cria um comentário.
+  - `POST /comment/update`: Atualiza um comentário.
+  - `GET /comment/list/{post_id}`: Lista os comentários de um post.
+  - `DELETE /comment/delete/{comment_id}`: Exclui um comentário.
 
-3. **Configurações de Segurança (`src/main/java/com/uaigran/config/SecurityConfigurations.java`)**
-   ```java
-   @Configuration
-   @EnableWebSecurity
-   public class SecurityConfigurations {
-       @Autowired
-       SecurityFilter securityFilter;
+#### [src/main/java/com/uaigran/controllers/FriendController.java](src/main/java/com/uaigran/controllers/FriendController.java)
+- Operações:
+  - `POST /friend/add`: Adiciona um amigo.
+  - `DELETE /friend/delete`: Remove um amigo.
+  - `GET /friend/list/{owner_id}`: Lista os amigos de um usuário.
+  - `GET /friend/profiles`: Lista perfis de possíveis amigos.
 
-       private static final String[] AUTH_WHITELIST = {
-           "/v3/api-docs/**",
-           "/api/swagger-ui/**",
-           "/api/swagger-ui.html"
-       };
+#### [src/main/java/com/uaigran/controllers/LikeController.java](src/main/java/com/uaigran/controllers/LikeController.java)
+- Operações:
+  - `POST /like/create`: Cria uma curtida.
+  - `GET /like/{post_id}/{user_id}`: Obtém os dados da curtida.
+  - `DELETE /like/delete/{like_id}`: Deleta uma curtida.
 
-       @Bean
-       public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
-           return httpSecurity
-               .cors(AbstractHttpConfigurer::disable)
-               .csrf(AbstractHttpConfigurer::disable)
-               .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-               .authorizeHttpRequests(authorize -> authorize
-                               .requestMatchers("/user/create").permitAll()
-                               .requestMatchers("/authenticate").permitAll()
-                               .requestMatchers(AUTH_WHITELIST).permitAll()
-                               .requestMatchers(HttpMethod.OPTIONS,"/**").permitAll()
-                               .anyRequest().authenticated()
-                       )
-               .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
-               .build();
-       }
+#### [src/main/java/com/uaigran/controllers/PostController.java](src/main/java/com/uaigran/controllers/PostController.java)
+- Operações:
+  - `POST /post/create`: Cria uma postagem.
+  - `DELETE /post/delete/{post_id}`: Deleta uma postagem.
+  - `POST /post/update`: Atualiza uma postagem.
+  - `GET /post/list/{user_id}`: Lista postagens de um usuário.
+  - `GET /post/{post_id}`: Obtém os dados de uma postagem.
+  - `GET /post/feed`: Obtém o feed de postagens.
 
-       @Bean
-       public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
-           return authenticationConfiguration.getAuthenticationManager();
-       }
+#### [src/main/java/com/uaigran/controllers/UserController.java](src/main/java/com/uaigran/controllers/UserController.java)
+- Operações:
+  - `POST /user/create`: Cria um usuário.
+  - `POST /user/profile/update`: Atualiza o perfil de um usuário.
+  - `GET /user/profile/{user_id}`: Obtém os dados do perfil de um usuário.
 
-       @Bean
-       public PasswordEncoder passwordEncoder() {
-           return new BCryptPasswordEncoder();
-       }
+### Repositórios
+São interfaces responsáveis por gerenciar a persistência de dados. Utilizam Spring Data JPA para simplificar o acesso ao banco de dados:
 
-       @Bean
-       CorsConfigurationSource corsConfigurationSource() {
-           CorsConfiguration configuration = new CorsConfiguration();
-           configuration.setAllowedOrigins(Arrays.asList("*"));
-           configuration.setAllowedMethods(Arrays.asList("*"));
-           configuration.setAllowedHeaders(Arrays.asList("*"));
-           UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-           source.registerCorsConfiguration("/**", configuration);
-           return source;
-       }
-   }
-   ```
+- [ICommentRepository.java](src/main/java/com/uaigran/models/repository/ICommentRepository.java): Repositório para comentários.
+- [IFriendRepository.java](src/main/java/com/uaigran/models/repository/IFriendRepository.java): Repositório para amizades.
+- [ILikeRepository.java](src/main/java/com/uaigran/models/repository/ILikeRepository.java): Repositório para curtidas.
+- [IPostRepository.java](src/main/java/com/uaigran/models/repository/IPostRepository.java): Repositório para postagens.
+- [IUserRepository.java](src/main/java/com/uaigran/models/repository/IUserRepository.java): Repositório para usuários.
 
-4. **Configuração do Swagger (`src/main/java/com/uaigran/config/SwaggerConfiguration.java`)**
-   ```java
-   @Configuration
-   public class SwaggerConfiguration {
-       @Bean
-       public OpenAPI myOpenAPI() {
-           Server devServer = new Server();
-           devServer.setUrl("http://localhost:8082");
-           devServer.setDescription("Server URL in Development environment");
+### Serviços
+Os serviços encapsulam a lógica de negócios e a interação com os repositórios:
 
-           License mitLicense = new License().name("MIT License").url("https://choosealicense.com/licenses/mit/");
+- [AuthenticationServices.java](src/main/java/com/uaigran/models/services/authentication/AuthenticationServices.java): Serviço de autenticação.
+- [CommentServices.java](src/main/java/com/uaigran/models/services/comment/CommentServices.java): Serviço de comentários.
+- [FileUploadService.java](src/main/java/com/uaigran/models/services/fileUpload/FileUploadService.java): Serviço de upload de arquivos.
+- [FriendServices.java](src/main/java/com/uaigran/models/services/friend/FriendServices.java): Serviço de amizades.
 
-           Info info = new Info()
-                   .title("Uaigran API")
-                   .version("1.0")
-                   .description("Essa API tem o objetivo de realizar algumas das operações que ocorrem em uma rede social!")
-                   .license(mitLicense);
+### Exceções Personalizadas
+As exceções personalizadas gerenciam diferentes tipos de erros que podem ocorrer na aplicação:
 
-           return new OpenAPI().info(info).servers(List.of(devServer));
-       }
-   }
-   ```
+- [BadRequestException.java](src/main/java/com/uaigran/exceptions/BadRequestException.java): Exceção para erros de requisição inválida.
+- [ConflictException.java](src/main/java/com/uaigran/exceptions/ConflictException.java): Exceção para erros de conflito.
+- [InternalServerException.java](src/main/java/com/uaigran/exceptions/InternalServerException.java): Exceção para erros internos do servidor.
+- [UnauthorizedException.java](src/main/java/com/uaigran/exceptions/UnauthorizedException.java): Exceção para erros de autenticação.
 
-5. **Controladores (`src/main/java/com/uaigran/controllers/`)**
-   - **AuthenticationController.java**
-   - **CommentController.java**
-   - **FriendController.java**
-   - **LikeController.java**
-   - **PostController.java**
-   - **UserController.java**
+### Entidades
+Representam as tabelas do banco de dados e possuem os seguintes mapeamentos JPA:
 
-6. **Documentação de Interface Swagger (`src/main/java/com/uaigran/docs/swagger/`)**
-   - **AuthenticationControllerDocs.java**
-   - **CommentControllerDocs.java**
-   - **FriendControllerDocs.java**
-   - **LikeControllerDocs.java**
-   - **PostControllerDocs.java**
-   - **UserControllerDocs.java**
-
-7. **Exceções (`src/main/java/com/uaigran/exceptions/`)**
-   - **BadRequestException.java**
-   - **ConflictException.java**
-   - **ExceptionsHandler.java**
-   - **FileProcessingException.java**
-   - **InternalServerException.java**
-   - **UnauthorizedException.java**
-
-8. **Entidades e Repositórios (`src/main/java/com/uaigran/models/`)**
-   - **entities**
-     - **Comment.java**
-     - **Friend.java**
-     - **FriendPrimaryKey.java**
-     - **Like.java**
-     - **Post.java**
-     - **User.java**
-   - **repository**
-     - **ICommentRepository.java**
-     - **IFriendRepository.java**
-     - **ILikeRepository.java**
-     - **IPostRepository.java**
-     - **IUserRepository.java**
-
-9. **Serviços (`src/main/java/com/uaigran/models/services/`)**
-   - **authentication**
-     - **AuthenticationRequest.java**
-     - **AuthenticationResponse.java**
-     - **AuthenticationServices.java**
-     - **IAuthenticationServices.java**
-   - **comment**
-     - **CommentResponse.java**
-     - **CommentServices.java**
-     - **CreateCommentRequest.java**
-     - **ICommentServices.java**
-     - **UpdateCommentRequest.java**
-   - **fileUpload**
-     - **AwsService.java**
-     - **FileUploadService.java**
-     - **IFileUploadService.java**
-   - **friend**
-     - **FriendRequest.java**
-     - **FriendResponse.java**
-     - **FriendServices.java**
-
-### Inicialização e Configuração
-
-- **Spring Boot:** Uaigran é uma aplicação Spring Boot, o que significa que pode ser inicializada facilmente utilizando a classe `UaigranApplication`.
-- **Banco de Dados:** Utiliza Spring Data JPA para a interação com o banco de dados, incluindo repositórios para cada entidade.
-- **AWS S3:** Configurado via `AwsConfig` para integração com localstack para testes locais.
-- **Spring Security:** Confiável por `SecurityConfigurations` para gerenciar segurança, autenticação e autorização utilizando tokens JWT.
-- **Swagger:** Configurado para oferecer documentação da API de forma fácil, ajudando desenvolvedores a entender e testar endpoints.
-
-### Módulos de Serviço
-
-- **Authentication Services:**
-  - Implementa autenticação de usuários utilizando a interface `IAuthenticationServices` e classe `AuthenticationServices`.
-  - Gera token JWT para os usuários autenticados.
-
-- **Comment Services:**
-  - Gerencia os comentários adicionados aos posts, incluindo criação, atualização, deleção e listagem.
-  - Usa `CommentServices` para implementar as regras de negócio requeridas.
-
-- **File Upload Services:**
-  - Faz o upload das fotos dos usuários para a AWS S3.
-  - Implementa funções de conversão de arquivos multipart e upload seguro.
-
-- **Friend Services:**
-  - Gerencia operações de amizade incluindo adição, remoção e listagem de amigos.
-  - Usa `FriendServices` para encapsular a lógica de negocio de relacionamentos de amizade.
-
----
+- [Comment.java](src/main/java/com/uaigran/models/entities/Comment.java): Entidade para comentários.
+- [Friend.java](src/main/java/com/uaigran/models/entities/Friend.java): Entidade para amizades.
+- [Like.java](src/main/java/com/uaigran/models/entities/Like.java): Entidade para curtidas.
+- [Post.java](src/main/java/com/uaigran/models/entities/Post.java): Entidade para postagens.
+- [User.java](src/main/java/com/uaigran/models/entities/User/User.java): Entidade para usuários.
 
 ## Conclusão
-A aplicação Uaigran foi construída com uma arquitetura sólida e escalável, utilizando tecnologias modernas e bem estabelecidas no ecossistema Java/Spring. Esta documentação fornece um roteiro para desenvolvedores que desejam entender cada componente e serviço dentro da aplicação, garantindo suporte a futuras extensões e colaborações. Com uma API bem documentada via Swagger, bem como um sistema de segurança robusto, a Uaigran está preparada para ser uma rede social funcional e segura para seus usuários.
+O software Uaigran fornece uma estrutura robusta para a implementação de funcionalidades típicas de redes sociais, com uma arquitetura bem definida e configurada utilizando as melhores práticas do Spring Boot. A documentação detalhada assegura a compreensão completa do funcionamento interno da aplicação, bem como facilita a implementação e o suporte contínuo.
