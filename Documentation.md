@@ -1,105 +1,375 @@
-# Documentação do Software Uaigran
+## Documentação do Software
 
-## Resumo do Software
-O software Uaigran é uma aplicação para gerenciar uma rede social, fornecendo meios para autenticação de usuários, criação e manuseio de postagens, comentários, likes e relações de amizade. A aplicação utiliza o framework Spring Boot e integra serviços como AWS S3 para armazenamento de arquivos, além de configurações de segurança com autenticação JWT.
+### Resumo do Software
 
-## Documentação Técnica
+Este software é um serviço de redes sociais que permite aos usuários realizar autenticação, criar e gerenciar usuários, postar conteúdo, e interagir com esse conteúdo através de comentários, likes e amizades. O software é construído utilizando o framework Spring Boot e inclui funcionalidades de segurança, armazenamento de arquivos na AWS S3 e documentação de API com Swagger.
 
-### Arquitetura e Configurações
-#### [src/main/java/com/uaigran/UaigranApplication.java](src/main/java/com/uaigran/UaigranApplication.java)
-O ponto de entrada da aplicação Spring Boot que configura a aplicação com os seguintes componentes:
-- `@SpringBootApplication`: Marca a classe como uma aplicação Spring Boot.
-- `@EnableJpaRepositories`: Habilita a criação de repositórios JPA.
-- `@EntityScan`: Habilita a varredura de entidades do pacote especificado.
-- `@ComponentScan`: Define o pacote base para a varredura dos componentes.
+### Arquitetura Técnica
 
-#### [src/main/java/com/uaigran/config/AwsConfig.java](src/main/java/com/uaigran/config/AwsConfig.java)
-Configuração da integração com AWS S3:
-- `amazonS3()`: Configura o cliente S3 com credenciais e endpoint locais para desenvolvimento.
+#### 1. Estrutura de Diretórios
 
-#### [src/main/java/com/uaigran/config/SecurityConfigurations.java](src/main/java/com/uaigran/config/SecurityConfigurations.java)
-Configuração de segurança com Spring Security:
-- Define endpoints públicos e protegidos, configura CORS, e define um filtro de autenticação JWT.
+- src/main/java/com/uaigran
+  - UaigranApplication.java
+  - config
+    - AwsConfig.java
+    - SecurityConfigurations.java
+    - SwaggerConfiguration.java
+  - controllers
+    - AuthenticationController.java
+    - CommentController.java
+    - FriendController.java
+    - LikeController.java
+    - PostController.java
+    - UserController.java
+  - docs
+    - erros
+      - ErrorMessage.java
+      - FieldValidationError.java
+      - ValidationErro.java
+    - swagger
+      - AuthenticationControllerDocs.java
+      - CommentControllerDocs.java
+      - FriendControllerDocs.java
+      - LikeControllerDocs.java
+      - PostControllerDocs.java
+      - UserControllerDocs.java
+  - exceptions
+    - BadRequestException.java
+    - ConflictException.java
+    - ExceptionsHandler.java
+    - FileProcessingException.java
+    - InternalServerException.java
+    - UnauthorizedException.java
+  - models
+    - entities
+      - Comment.java
+      - Friend.java
+      - FriendPrimaryKey.java
+      - Like.java
+      - Post.java
+      - User
+        - User.java
+        - UserRoles.java
+    - repository
+      - ICommentRepository.java
+      - IFriendRepository.java
+      - ILikeRepository.java
+      - IPostRepository.java
+      - IUserRepository.java
+    - services
+      - authentication
+        - AuthenticationRequest.java
+        - AuthenticationResponse.java
+        - AuthenticationServices.java
+        - IAuthenticationServices.java
+      - comment
+        - CommentResponse.java
+        - CommentServices.java
+        - CreateCommentRequest.java
+        - ICommentServices.java
+        - UpdateCommentRequest.java
+      - fileUpload
+        - AwsService.java
+        - FileUploadService.java
+        - IFileUploadService.java
+      - friend
+        - FriendRequest.java
+        - FriendResponse.java
+        - FriendServices.java
+ 
+### Descrição Técnica
 
-#### [src/main/java/com/uaigran/config/SwaggerConfiguration.java](src/main/java/com/uaigran/config/SwaggerConfiguration.java)
-Configuração do Swagger para documentação da API:
-- Configurações básicas do OpenAPI, incluindo a definição do servidor de desenvolvimento e informações da API.
+#### 2. Aplicação Principal
 
-### Controladores REST
-Os controladores são responsáveis por gerenciar as requisições HTTP e são estruturados com endpoints específicos para operações CRUD de diferentes entidades da aplicação. A seguir são listados os principais controladores:
+**UaigranApplication.java**
+```java
+// Classe de entrada principal da aplicação Spring Boot
+@SpringBootApplication
+@EnableJpaRepositories("com.uaigran.models.repository")
+@ComponentScan(basePackages = { "com.uaigran" })
+@EntityScan("com.uaigran.models.entities")
+public class UaigranApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(UaigranApplication.class, args);
+    }
+}
+```
 
-#### [src/main/java/com/uaigran/controllers/AuthenticationController.java](src/main/java/com/uaigran/controllers/AuthenticationController.java)
-- Operações:
-  - `POST /authenticate`: Autentica o usuário e retorna um token JWT.
+#### 3. Configurações
 
-#### [src/main/java/com/uaigran/controllers/CommentController.java](src/main/java/com/uaigran/controllers/CommentController.java)
-- Operações:
-  - `POST /comment/create`: Cria um comentário.
-  - `POST /comment/update`: Atualiza um comentário.
-  - `GET /comment/list/{post_id}`: Lista os comentários de um post.
-  - `DELETE /comment/delete/{comment_id}`: Exclui um comentário.
+**AwsConfig.java**
+```java
+@Configuration
+public class AwsConfig {
+    @Bean
+    public AmazonS3 amazonS3() {
+        return AmazonS3ClientBuilder
+                .standard()
+                .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials("uaigran", "uaigran")))
+                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("http://s3.localhost.localstack.cloud:4566", Regions.US_WEST_2.getName()))
+                .build();
+    }
+}
+```
 
-#### [src/main/java/com/uaigran/controllers/FriendController.java](src/main/java/com/uaigran/controllers/FriendController.java)
-- Operações:
-  - `POST /friend/add`: Adiciona um amigo.
-  - `DELETE /friend/delete`: Remove um amigo.
-  - `GET /friend/list/{owner_id}`: Lista os amigos de um usuário.
-  - `GET /friend/profiles`: Lista perfis de possíveis amigos.
+**SecurityConfigurations.java**
+```java
+@Configuration
+@EnableWebSecurity
+public class SecurityConfigurations {
+    @Autowired
+    SecurityFilter securityFilter;
+    private static final String[] AUTH_WHITELIST = {
+        "/v3/api-docs/**",
+        "/api/swagger-ui/**",
+        "/api/swagger-ui.html"
+    };
 
-#### [src/main/java/com/uaigran/controllers/LikeController.java](src/main/java/com/uaigran/controllers/LikeController.java)
-- Operações:
-  - `POST /like/create`: Cria uma curtida.
-  - `GET /like/{post_id}/{user_id}`: Obtém os dados da curtida.
-  - `DELETE /like/delete/{like_id}`: Deleta uma curtida.
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+        return httpSecurity
+                .cors(AbstractHttpConfigurer::disable)
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/user/create").permitAll()
+                        .requestMatchers("/authenticate").permitAll()
+                        .requestMatchers(AUTH_WHITELIST).permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS,"/**").permitAll()
+                        .anyRequest().authenticated())
+                .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
 
-#### [src/main/java/com/uaigran/controllers/PostController.java](src/main/java/com/uaigran/controllers/PostController.java)
-- Operações:
-  - `POST /post/create`: Cria uma postagem.
-  - `DELETE /post/delete/{post_id}`: Deleta uma postagem.
-  - `POST /post/update`: Atualiza uma postagem.
-  - `GET /post/list/{user_id}`: Lista postagens de um usuário.
-  - `GET /post/{post_id}`: Obtém os dados de uma postagem.
-  - `GET /post/feed`: Obtém o feed de postagens.
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
+    }
+    
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-#### [src/main/java/com/uaigran/controllers/UserController.java](src/main/java/com/uaigran/controllers/UserController.java)
-- Operações:
-  - `POST /user/create`: Cria um usuário.
-  - `POST /user/profile/update`: Atualiza o perfil de um usuário.
-  - `GET /user/profile/{user_id}`: Obtém os dados do perfil de um usuário.
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("*"));
+        configuration.setAllowedMethods(Arrays.asList("*"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+}
+```
 
-### Repositórios
-São interfaces responsáveis por gerenciar a persistência de dados. Utilizam Spring Data JPA para simplificar o acesso ao banco de dados:
+**SwaggerConfiguration.java**
+```java
+@Configuration
+public class SwaggerConfiguration {
+    @Bean
+    public OpenAPI myOpenAPI() {
+        Server devServer = new Server();
+        devServer.setUrl("http://localhost:8082");
+        devServer.setDescription("Server URL in Development environment");
 
-- [ICommentRepository.java](src/main/java/com/uaigran/models/repository/ICommentRepository.java): Repositório para comentários.
-- [IFriendRepository.java](src/main/java/com/uaigran/models/repository/IFriendRepository.java): Repositório para amizades.
-- [ILikeRepository.java](src/main/java/com/uaigran/models/repository/ILikeRepository.java): Repositório para curtidas.
-- [IPostRepository.java](src/main/java/com/uaigran/models/repository/IPostRepository.java): Repositório para postagens.
-- [IUserRepository.java](src/main/java/com/uaigran/models/repository/IUserRepository.java): Repositório para usuários.
+        License mitLicense = new License().name("MIT License").url("https://choosealicense.com/licenses/mit/");
 
-### Serviços
-Os serviços encapsulam a lógica de negócios e a interação com os repositórios:
+        Info info = new Info()
+                .title("Uaigran API")
+                .version("1.0")
+                .description("Essa API tem o objetivo de realizar algumas das operações que ocorrem em uma rede social!")
+                .license(mitLicense);
 
-- [AuthenticationServices.java](src/main/java/com/uaigran/models/services/authentication/AuthenticationServices.java): Serviço de autenticação.
-- [CommentServices.java](src/main/java/com/uaigran/models/services/comment/CommentServices.java): Serviço de comentários.
-- [FileUploadService.java](src/main/java/com/uaigran/models/services/fileUpload/FileUploadService.java): Serviço de upload de arquivos.
-- [FriendServices.java](src/main/java/com/uaigran/models/services/friend/FriendServices.java): Serviço de amizades.
+        return new OpenAPI().info(info).servers(List.of(devServer));
+    }
+}
+```
 
-### Exceções Personalizadas
-As exceções personalizadas gerenciam diferentes tipos de erros que podem ocorrer na aplicação:
+#### 4. Controladores
 
-- [BadRequestException.java](src/main/java/com/uaigran/exceptions/BadRequestException.java): Exceção para erros de requisição inválida.
-- [ConflictException.java](src/main/java/com/uaigran/exceptions/ConflictException.java): Exceção para erros de conflito.
-- [InternalServerException.java](src/main/java/com/uaigran/exceptions/InternalServerException.java): Exceção para erros internos do servidor.
-- [UnauthorizedException.java](src/main/java/com/uaigran/exceptions/UnauthorizedException.java): Exceção para erros de autenticação.
+**AuthenticationController.java**
+```java
+@RestController
+@RequestMapping("/authenticate")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
+public class AuthenticationController implements AuthenticationControllerDocs {
+    @Autowired
+    private IAuthenticationServices _authenticateServices;
 
-### Entidades
-Representam as tabelas do banco de dados e possuem os seguintes mapeamentos JPA:
+    @PostMapping()
+    @Override
+    public ResponseEntity<Object> authenticate(@RequestBody AuthenticationRequest request) throws UnauthorizedException {
+        return _authenticateServices.authenticate(request);
+    }
+}
+```
 
-- [Comment.java](src/main/java/com/uaigran/models/entities/Comment.java): Entidade para comentários.
-- [Friend.java](src/main/java/com/uaigran/models/entities/Friend.java): Entidade para amizades.
-- [Like.java](src/main/java/com/uaigran/models/entities/Like.java): Entidade para curtidas.
-- [Post.java](src/main/java/com/uaigran/models/entities/Post.java): Entidade para postagens.
-- [User.java](src/main/java/com/uaigran/models/entities/User/User.java): Entidade para usuários.
+**CommentController.java**
+```java
+@RestController
+@RequestMapping("/comment")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
+public class CommentController implements CommentControllerDocs {
+    @Autowired
+    private ICommentServices _commentServices;
 
-## Conclusão
-O software Uaigran fornece uma estrutura robusta para a implementação de funcionalidades típicas de redes sociais, com uma arquitetura bem definida e configurada utilizando as melhores práticas do Spring Boot. A documentação detalhada assegura a compreensão completa do funcionamento interno da aplicação, bem como facilita a implementação e o suporte contínuo.
+    @PostMapping("/create")
+    @Override
+    public ResponseEntity<Object> createComment(@ModelAttribute CreateCommentRequest request) throws InternalServerException, BadRequestException {
+        return _commentServices.createComment(request);
+    }
+
+    @PostMapping("/update")
+    @Override
+    public ResponseEntity<Object> updateComment(@RequestBody UpdateCommentRequest request) throws InternalServerException, BadRequestException {
+        return _commentServices.updateComment(request);
+    }
+
+    @GetMapping("/list/{post_id}")
+    @Override
+    public ResponseEntity<Object> list(@PathVariable("post_id") UUID post_id) throws InternalServerException, BadRequestException {
+        return _commentServices.list(post_id);
+    }
+
+    @DeleteMapping("/delete/{comment_id}")
+    @Override
+    public ResponseEntity<Object> deleteComment(@PathVariable("comment_id") UUID comment_id) throws InternalServerException, BadRequestException {
+        return _commentServices.deleteComment(comment_id);
+    }
+}
+```
+
+**FriendController.java**
+```java
+@RestController
+@RequestMapping("/friend")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
+public class FriendController implements FriendControllerDocs {
+    @Autowired
+    private IFriendServices _friendServices;
+
+    @PostMapping("/add")
+    public ResponseEntity<Object> addFriend(@RequestBody FriendRequest request) throws ConflictException, InternalServerException, BadRequestException {
+        return _friendServices.addFriend(request);
+    }
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<Object> removeFriend(@RequestBody FriendRequest request) throws InternalServerException, BadRequestException {
+        return _friendServices.removeFriend(request);
+    }
+
+    @GetMapping("/list/{owner_id}")
+    public  ResponseEntity<Object> friendList(@PathVariable("owner_id") UUID owner_id) throws InternalServerException, BadRequestException {
+        return  _friendServices.findAllFriendsByOwner(owner_id);
+    }
+
+    @GetMapping("/profiles")
+    public ResponseEntity<Object> profiles() throws InternalServerException, BadRequestException {
+        return _friendServices.profiles();
+    }
+}
+```
+
+**LikeController.java**
+```java
+@RestController
+@RequestMapping("/like")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
+public class LikeController implements LikeControllerDocs {
+    @Autowired
+    private ILikeServices _likeServices;
+
+    @PostMapping("/create")
+    public ResponseEntity<Object> createLike(@RequestBody CreateLikeRequest request) throws InternalServerException, BadRequestException {
+        return _likeServices.createLike(request);
+    }
+
+    @GetMapping("/{post_id}/{user_id}")
+    public ResponseEntity<Object> getLike(@PathVariable("post_id") UUID post_id,@PathVariable("user_id") UUID user_id) throws InternalServerException, BadRequestException {
+        return _likeServices.getLike(post_id,user_id);
+    }
+
+    @DeleteMapping("/delete/{like_id}")
+    public ResponseEntity<Object> deleteLike(@PathVariable("like_id") UUID like_id) throws InternalServerException, BadRequestException {
+        return _likeServices.deleteLike(like_id);
+    }
+}
+```
+
+**PostController.java**
+```java
+@RestController
+@RequestMapping("/post")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
+public class PostController implements PostControllerDocs {
+    @Autowired
+    private IPostServices _postServices;
+
+    @PostMapping("/create")
+    public ResponseEntity<Object> create(@ModelAttribute CreatePostRequest request) throws InternalServerException, BadRequestException, FileProcessingException {
+        return _postServices.createPost(request);
+    }
+
+    @DeleteMapping("/delete/{post_id}")
+    public ResponseEntity<Object> delete(@PathVariable("post_id") UUID post_id) throws InternalServerException, BadRequestException {
+        return _postServices.deletePost(post_id);
+    }
+
+    @PostMapping("/update")
+    public ResponseEntity<Object> update(@RequestBody UpdatePostRequest request) throws InternalServerException, BadRequestException {
+        return _postServices.updatePost(request);
+    }
+
+    @GetMapping("/list/{user_id}")
+    public ResponseEntity<Object> list(@PathVariable("user_id") UUID user_id) throws InternalServerException, BadRequestException {
+        return _postServices.list(user_id);
+    }
+
+    @GetMapping("/{post_id}")
+    public ResponseEntity<Object> getPost(@PathVariable("post_id") UUID post_id) throws InternalServerException, BadRequestException {
+        return _postServices.getPost(post_id);
+    }
+
+    @GetMapping("/feed")
+    public ResponseEntity<Object> feed() throws InternalServerException {
+        return _postServices.feed();
+    }
+}
+```
+
+**UserController.java**
+```java
+@RestController
+@RequestMapping("/user")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
+public class UserController implements UserControllerDocs {
+    @Autowired
+    private IUserServices _userServices;
+
+    @PostMapping("/create")
+    @Override
+    public ResponseEntity<Object> createUser(@RequestBody CreateUserRequest request) throws ConflictException, InternalServerException {
+        return _userServices.createUser(request);
+    }
+
+    @PostMapping("/profile/update")
+    @Override
+    public ResponseEntity<Object> updateProfile(@ModelAttribute UpdateUserRequest request) throws InternalServerException, BadRequestException, FileProcessingException {
+        return _userServices.updateProfile(request);
+    }
+
+    @GetMapping("/profile/{user_id}")
+    @Override
+    public ResponseEntity<Object> profile(@PathVariable("user_id") UUID user_id) throws InternalServerException, BadRequestException {
+        return _userServices.profile(user_id);
+    }
+}
+```
+
+### Conclusão
+
+O código do software é bem estruturado e organizado em camadas, seguindo boas práticas de desenvolvimento Java com Spring Boot. Ele encapsula as funcionalidades da aplicação em módulos separados e utiliza injeção de dependências para gerir serviços. Além disso, usa Swagger para documentar a API, garantindo que as interfaces sejam claras e acessíveis tanto para desenvolvedores quanto para usuários finais. As configurações da aplicação e de segurança estão bem definidas, e o uso de serviços AWS S3 para armazenamento de arquivos é uma adição eficaz para o gerenciamento de mídia na plataforma.
+
+Esta documentação técnica fornece uma visão abrangente do software, que pode ser utilizada como base para desenvolvimento futuro, manutenção ou integração com outras aplicações e serviços.
