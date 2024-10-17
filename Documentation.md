@@ -1,247 +1,405 @@
-**Especificação Funcional: Projeto UaiGran**
+# Documento de Especificação do Software: Uaigran Social Network API
 
-O projeto UaiGran consiste em uma aplicação de rede social construída utilizando o framework Spring Boot em Java. A seguir estão descritas as funcionalidades das principais classes e seus métodos, bem como os diagramas que representam a arquitetura do sistema.
+## Resumo do Funcionamento do Software
 
-### 1. Configurações Gerais da Aplicação
+O "Uaigran Social Network API" é uma aplicação de backend desenvolvida utilizando o framework Spring Boot. A finalidade da aplicação é gerenciar operações comuns de uma rede social, tais como autenticação de usuários, operações de CRUD (Create, Read, Update, Delete) em postagens, comentários e curtidas, além das funcionalidades de gestão de amigos. Para facilitar a documentação e integração com a API, foi implementada com suporte ao Swagger.
 
-#### 1.1. `UaigranApplication`: Classe Principal da Aplicação
-- **Rotas:** Nenhuma rota específica.
-- **Descrição:** Classe principal para inicializar a aplicação Spring Boot.
-- **Métodos:**
-  - `public static void main(String[] args)`: Método de entrada da aplicação.
+## Estrutura do Projeto
 
-#### 1.2. `AwsConfig`: Configuração de AWS
-- **Rotas:** Nenhuma rota específica.
-- **Descrição:** Classe de configuração que define o cliente Amazon S3.
-- **Métodos:**
-  - `public AmazonS3 amazonS3()`: Método que retorna a instância do cliente Amazon S3.
+A estrutura do projeto segue os princípios do Spring Boot com a separação de diferentes camadas de responsabilidade, incluindo controladores (controllers), serviços, repositórios e modelos de entidades.
 
-#### 1.3. `SecurityConfigurations`: Configuração de Segurança
-- **Rotas:** Nenhuma rota específica.
-- **Descrição:** Classe de configuração de segurança que define filtros e políticas de autenticação.
-- **Métodos:**
-  - `public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity)`: Configura a cadeia de filtros de segurança.
-  - `public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)`: Configura o gerenciador de autenticação.
-  - `public PasswordEncoder passwordEncoder()`: Configura o encoder de senha.
-  - `CorsConfigurationSource corsConfigurationSource()`: Configuração do CORS.
+### Estrutura de Pacotes
 
-#### 1.4. `SwaggerConfiguration`: Configuração do Swagger
-- **Rotas:** Nenhuma rota específica.
-- **Descrição:** Classe de configuração do Swagger que define a documentação da API.
-- **Métodos:**
-  - `public OpenAPI myOpenAPI()`: Método que retorna a configuração do OpenAPI.
+- **config**: Contém classes de configuração do aplicativo, tais como AWS e segurança.
+- **controllers**: Contém os controladores responsáveis pelas rotas da aplicação.
+- **docs**: Contém as definições de Swagger e as classes de erros.
+- **exceptions**: Contém as classes de exceções customizadas da aplicação.
+- **models.entities**: Contém as entidades mapeadas para o banco de dados.
+- **models.repository**: Contém interfaces de repositórios para acesso à camada de persistência.
+- **models.services**: Contém a implementação dos serviços de negócios da aplicação.
+- **models.services.security**: Contém serviços relacionados à segurança, como geração de JWT.
 
-### 2. Controllers (Controladores)
+## Descrição Técnica do Código
 
-#### 2.1. `AuthenticationController`: Controlador de Autenticação
-- **Rotas:**
-  - `POST /authenticate`
-- **Descrição:** Autentica um usuário e gera um token.
-- **Métodos:**
-  - `public ResponseEntity<Object> authenticate(@RequestBody AuthenticationRequest request)`: Autenticação de usuário.
+### Configurações
 
-#### 2.2. `CommentController`: Controlador de Comentários
-- **Rotas:**
-  - `POST /comment/create`
-  - `POST /comment/update`
-  - `GET /comment/list/{post_id}`
-  - `DELETE /comment/delete/{comment_id}`
-- **Descrição:** Gerencia operações sobre os comentários dos posts.
-- **Métodos:**
-  - `public ResponseEntity<Object> createComment(@ModelAttribute CreateCommentRequest request)`: Cria um novo comentário.
-  - `public ResponseEntity<Object> updateComment(@RequestBody UpdateCommentRequest request)`: Atualiza um comentário.
-  - `public ResponseEntity<Object> list(@PathVariable("post_id") UUID post_id)`: Lista comentários de um post.
-  - `public ResponseEntity<Object> deleteComment(@PathVariable("comment_id") UUID comment_id)`: Exclui um comentário.
+#### UaigranApplication.java
 
-#### 2.3. `FriendController`: Controlador de Amigos
-- **Rotas:**
-  - `POST /friend/add`
-  - `DELETE /friend/delete`
-  - `GET /friend/list/{owner_id}`
-  - `GET /friend/profiles`
-- **Descrição:** Gerencia relações de amizade.
-- **Métodos:**
-  - `public ResponseEntity<Object> addFriend(@RequestBody FriendRequest request)`: Adiciona um amigo.
-  - `public ResponseEntity<Object> removeFriend(@RequestBody FriendRequest request)`: Remove um amigo.
-  - `public ResponseEntity<Object> friendList(@PathVariable("owner_id") UUID owner_id)`: Retorna a lista de amigos de um usuário.
-  - `public ResponseEntity<Object> profiles()`: Retorna uma lista de usuários que podem ser adicionados como amigos.
+Classe principal da aplicação, responsável pela inicialização do Spring Boot.
 
-#### 2.4. `LikeController`: Controlador de Curtidas
-- **Rotas:**
-  - `POST /like/create`
-  - `GET /like/{post_id}/{user_id}`
-  - `DELETE /like/delete/{like_id}`
-- **Descrição:** Gerencia operações de curtidas em posts.
-- **Métodos:**
-  - `public ResponseEntity<Object> createLike(@RequestBody CreateLikeRequest request)`: Cria um like.
-  - `public ResponseEntity<Object> getLike(@PathVariable("post_id") UUID post_id, @PathVariable("user_id") UUID user_id)`: Retorna dados de uma curtida.
-  - `public ResponseEntity<Object> deleteLike(@PathVariable("like_id") UUID like_id)`: Exclui uma curtida.
-
-#### 2.5. `PostController`: Controlador de Posts
-- **Rotas:**
-  - `POST /post/create`
-  - `DELETE /post/delete/{post_id}`
-  - `POST /post/update`
-  - `GET /post/list/{user_id}`
-  - `GET /post/{post_id}`
-  - `GET /post/feed`
-- **Descrição:** Gerencia operações sobre posts.
-- **Métodos:**
-  - `public ResponseEntity<Object> create(@ModelAttribute CreatePostRequest request)`: Cria um post.
-  - `public ResponseEntity<Object> delete(@PathVariable("post_id") UUID post_id)`: Exclui um post.
-  - `public ResponseEntity<Object> update(@RequestBody UpdatePostRequest request)`: Atualiza um post.
-  - `public ResponseEntity<Object> list(@PathVariable("user_id") UUID user_id)`: Lista posts de um usuário.
-  - `public ResponseEntity<Object> getPost(@PathVariable("post_id") UUID post_id)`: Retorna dados de um post.
-  - `public ResponseEntity<Object> feed()`: Retorna o feed de posts.
-
-#### 2.6. `UserController`: Controlador de Usuários
-- **Rotas:**
-  - `POST /user/create`
-  - `POST /user/profile/update`
-  - `GET /user/profile/{user_id}`
-- **Descrição:** Gerencia operações sobre usuários.
-- **Métodos:**
-  - `public ResponseEntity<Object> createUser(@RequestBody CreateUserRequest request)`: Cria um usuário.
-  - `public ResponseEntity<Object> updateProfile(@ModelAttribute UpdateUserRequest request)`: Atualiza um perfil de usuário.
-  - `public ResponseEntity<Object> profile(@PathVariable("user_id") UUID user_id)`: Retorna dados de um usuário.
-
-### 3. Serviços, Repositórios e Entidades
-
-#### 3.1. `IUserRepository`: Interface de Repositório de Usuário
-- **Descrição:** Interface para operações CRUD em usuários no banco de dados.
-
-#### 3.2. `ICommentRepository`: Interface de Repositório de Comentário
-- **Descrição:** Interface para operações CRUD em comentários no banco de dados.
-
-#### 3.3. `IPostRepository`: Interface de Repositório de Post
-- **Descrição:** Interface para operações CRUD em posts no banco de dados.
-
-#### 3.4. `IFriendRepository`: Interface de Repositório de Amizade
-- **Descrição:** Interface para operações CRUD em amigos no banco de dados.
-
-#### 3.5. `ILikeRepository`: Interface de Repositório de Curtidas
-- **Descrição:** Interface para operações CRUD em curtidas no banco de dados.
-
-#### 3.6. `User`, `Comment`, `Post`, `Friend`, `Like`: Entidades do modelo de dados
-- **Descrição:** Representam as tabelas do banco de dados.
-
-### Diagrama de Arquitetura
-
-#### 1. Diagrama de Classes (Componentes Principais)
-
-```mermaid
-classDiagram
-class UaigranApplication {
-  +main(String[] args)
+```java
+@SpringBootApplication
+@EnableJpaRepositories("com.uaigran.models.repository")
+@EntityScan("com.uaigran.models.entities")
+@ComponentScan(basePackages = { "com.uaigran" })
+public class UaigranApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(UaigranApplication.class, args);
+    }
 }
-
-class AwsConfig {
-  +AmazonS3 amazonS3()
-}
-
-class SecurityConfigurations {
-  +SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity)
-  +AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
-  +PasswordEncoder passwordEncoder()
-}
-
-class SwaggerConfiguration {
-  +OpenAPI myOpenAPI()
-}
-
-class AuthenticationController {
-  +ResponseEntity<Object> authenticate(AuthenticationRequest request)
-}
-
-class CommentController {
-  +ResponseEntity<Object> createComment(CreateCommentRequest request)
-  +ResponseEntity<Object> updateComment(UpdateCommentRequest request)
-  +ResponseEntity<Object> list(UUID post_id)
-  +ResponseEntity<Object> deleteComment(UUID comment_id)
-}
-
-class FriendController {
-  +ResponseEntity<Object> addFriend(FriendRequest request)
-  +ResponseEntity<Object> removeFriend(FriendRequest request)
-  +ResponseEntity<Object> friendList(UUID owner_id)
-  +ResponseEntity<Object> profiles()
-}
-
-class LikeController {
-  +ResponseEntity<Object> createLike(CreateLikeRequest request)
-  +ResponseEntity<Object> getLike(UUID post_id, UUID user_id)
-  +ResponseEntity<Object> deleteLike(UUID like_id)
-}
-
-class PostController {
-  +ResponseEntity<Object> create(CreatePostRequest request)
-  +ResponseEntity<Object> delete(UUID post_id)
-  +ResponseEntity<Object> update(UpdatePostRequest request)
-  +ResponseEntity<Object> list(UUID user_id)
-  +ResponseEntity<Object> getPost(UUID post_id)
-  +ResponseEntity<Object> feed()
-}
-
-class UserController {
-  +ResponseEntity<Object> createUser(CreateUserRequest request)
-  +ResponseEntity<Object> updateProfile(UpdateUserRequest request)
-  +ResponseEntity<Object> profile(UUID user_id)
-}
-
-UaigranApplication --> AwsConfig
-UaigranApplication --> SecurityConfigurations
-UaigranApplication --> SwaggerConfiguration
-UaigranApplication --> AuthenticationController
-UaigranApplication --> CommentController
-UaigranApplication --> FriendController
-UaigranApplication --> LikeController
-UaigranApplication --> PostController
-UaigranApplication --> UserController
 ```
 
-#### 2. Diagrama de Entidade-Relacionamento (ERD)
+#### AwsConfig.java
 
-```mermaid
-erDiagram
-    USER {
-        UUID id PK
-        String name
-        String email
-        String password
-        String description
-        String photoUri
-        String role
+Configuração para integração com o AWS S3, utilizando LocalStack para teste local.
+
+```java
+@Configuration
+public class AwsConfig {
+    @Bean
+    public AmazonS3 amazonS3() {
+        return AmazonS3ClientBuilder
+                .standard()
+                .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials("uaigran", "uaigran")))
+                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("http://s3.localhost.localstack.cloud:4566", Regions.US_WEST_2.getName()))
+                .build();
     }
-    COMMENT {
-        UUID id PK
-        UUID user_id FK
-        UUID post_id FK
-        String comment_text
+}
+```
+#### SecurityConfigurations.java
+
+Configuração de segurança utilizando Spring Security para autenticação e autorização.
+
+```java
+@Configuration
+@EnableWebSecurity
+public class SecurityConfigurations {
+    @Autowired
+    SecurityFilter securityFilter;
+
+    private static final String[] AUTH_WHITELIST = {
+            "/v3/api-docs/**",
+            "/api/swagger-ui/**",
+            "/api/swagger-ui.html"
+    };
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+        return httpSecurity
+                .cors(AbstractHttpConfigurer::disable)
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authorize -> authorize
+                                .requestMatchers("/user/create").permitAll()
+                                .requestMatchers("/authenticate").permitAll()
+                                .requestMatchers(AUTH_WHITELIST).permitAll()
+                                .requestMatchers(HttpMethod.OPTIONS,"/**").permitAll()
+                                .anyRequest().authenticated()
+                        )
+                .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
     }
-    POST {
-        UUID post_id PK
-        UUID user_id FK
-        String description
-        String photoUri
-        Date post_date
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
     }
-    LIKE {
-        UUID id PK
-        UUID user_id FK
-        UUID post_id FK
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
-    FRIEND {
-        UUID owner FK
-        UUID friend FK
+
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("*"));
+        configuration.setAllowedMethods(Arrays.asList("*"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
-    POST ||--o{ COMMENT : "has"
-    USER ||--o{ COMMENT : "writes"
-    POST ||--o{ LIKE : "has"
-    USER ||--o{ LIKE : "gives"
-    USER ||--o{ FRIEND : "is friend with"
-    USER ||--o{ POST : "writes"
+}
 ```
 
-### Conclusão
+#### SwaggerConfiguration.java
 
-Este documento descreve as funcionalidades principais da aplicação UaiGran, incluindo as rotas, métodos e classes principais. Os diagramas ajudam a visualizar a estrutura da aplicação e suas relações. Estas informações são essenciais para a manutenção e expansão do sistema, fornecendo um guia claro para desenvolvedores e stakeholders.
+Configuração do Swagger para documentação automatizada da API.
+
+```java
+@Configuration
+public class SwaggerConfiguration {
+    @Bean
+    public OpenAPI myOpenAPI() {
+        Server devServer = new Server();
+        devServer.setUrl("http://localhost:8082");
+        devServer.setDescription("Server URL in Development environment");
+
+        License mitLicense = new License().name("MIT License").url("https://choosealicense.com/licenses/mit/");
+
+        Info info = new Info()
+                .title("Uaigran API")
+                .version("1.0")
+                .description("Essa API tem o objetivo de realizar algumas das operações que ocorrem em uma rede social!")
+                .license(mitLicense);
+
+        return new OpenAPI().info(info).servers(List.of(devServer));
+    }
+}
+```
+
+### Controladores
+
+#### AuthenticationController.java
+
+Controlador responsável pela autenticação de usuários.
+
+```java
+@RestController
+@RequestMapping("/authenticate")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
+public class AuthenticationController implements AuthenticationControllerDocs {
+    @Autowired
+    private IAuthenticationServices _authenticateServices;
+
+    @PostMapping()
+    @Override
+    public ResponseEntity<Object> authenticate(@RequestBody AuthenticationRequest request) throws UnauthorizedException {
+        return _authenticateServices.authenticate(request);
+    }
+}
+```
+
+#### Exemplos de outros controladores
+
+- **CommentController.java**: Controla operações relacionadas a comentários.
+- **FriendController.java**: Controla operações relacionadas a amizades.
+- **LikeController.java**: Controla operações relacionadas a curtidas.
+- **PostController.java**: Controla operações relacionadas a postagens.
+- **UserController.java**: Controla operações relacionadas a usuários.
+
+### Serviços
+
+#### AuthenticationServices.java
+
+Serviço que contém a lógica de autenticação.
+
+```java
+@Service
+public class AuthenticationServices implements IAuthenticationServices {
+    @Autowired
+    private IUserServices _userServices;
+    @Autowired
+    private IJwtService _jwtService;
+
+    @Autowired
+    AuthenticationManager authenticationManager;
+
+    public ResponseEntity<Object> authenticate(AuthenticationRequest request) throws UnauthorizedException {
+        try {
+            var usernamePassword = new UsernamePasswordAuthenticationToken(request.email,request.password);
+            var auth = authenticationManager.authenticate(usernamePassword);
+            var token = _jwtService.generateToken((User) auth.getPrincipal());
+            var response = new AuthenticationResponse();
+
+            response.setToken(token);
+            response.setUser_id(((User) auth.getPrincipal()).getId());
+
+            return ResponseEntity.ok().body(response);
+        } catch (Exception e){
+            throw  new UnauthorizedException("Invalid user credentials!");
+        }
+    }
+}
+```
+
+#### Outro exemplo relevante
+
+- **CommentServices.java**: Serviço que lida com a lógica de negócios de comentários.
+- **FriendServices.java**: Serviço que lida com a lógica de negócios de amizades.
+- **PostServices.java**: Serviço que lida com a lógica de negócios de postagens.
+- **UserServices.java**: Serviço que lida com a lógica de negócios de usuários.
+
+### Repositórios
+
+#### IUserRepository.java
+
+Interface do repositório de usuário que extende JpaRepository para operações CRUD.
+
+```java
+@Repository
+public interface IUserRepository extends JpaRepository<User,UUID> {
+    UserDetails findByEmail(String email);
+    @Override
+    Optional<User> findById(UUID uuid);
+}
+```
+
+### Entidades
+
+#### User.java
+
+Modelo de usuário que implementa UserDetails para integração com Spring Security.
+
+```java
+@Builder
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+@Entity
+@Table(name = "users")
+public class User implements UserDetails {
+    @Id
+    @Column(name = "id")
+    private UUID id;
+    @Column(name = "name",nullable = false)
+    private String name;
+    @Column(name = "email",unique = true,nullable = false)
+    private String email;
+    @Column(name = "password",nullable = false)
+    private String password;
+    @Column(name = "description")
+    private String description;
+    @Column(name = "photoUri")
+    private String photoUri;
+    @Column(name = "role",columnDefinition ="VARCHAR(100)")
+    private UserRoles role;
+
+    @OneToMany(mappedBy="owner", cascade=CascadeType.ALL, orphanRemoval = true,fetch = FetchType.LAZY)
+    private List<Friend> friends;
+
+    @OneToMany(mappedBy = "user",cascade = CascadeType.ALL, orphanRemoval = true,fetch = FetchType.LAZY)
+    private List<Post> post_list;
+
+    @OneToMany(mappedBy = "user",cascade = CascadeType.ALL, orphanRemoval = true,fetch = FetchType.LAZY)
+    private List<Comment> comment_list;
+
+    @OneToMany(mappedBy = "user",cascade = CascadeType.ALL, orphanRemoval = true,fetch = FetchType.LAZY)
+    private List<Like> like_list;
+
+    // Implementação dos métodos de UserDetails...
+}
+```
+
+## Diagramas
+
+### Diagrama de Classes Simplificado
+
+```plantuml
+@startuml
+    package "com.uaigran.models.entities" {
+        class User {
+            UUID id
+            String name
+            String email
+            String password
+            String description
+            String photoUri
+            UserRoles role
+            List<Friend> friends
+            List<Post> post_list
+            List<Comment> comment_list
+            List<Like> like_list
+        }
+        class Post {
+            UUID post_id
+            String description
+            User user
+            String photoUri
+            Date post_date
+            List<Comment> comments
+            List<Like> likes
+        }
+        class Comment {
+            UUID id
+            User user
+            String comment_text
+            Post post
+        }
+        class Like {
+            UUID id
+            User user
+            Post post
+        }
+        class Friend {
+            FriendPrimaryKey id
+            User owner
+            User friend
+        }
+        class FriendPrimaryKey {
+            UUID owner
+            UUID friend
+        }
+    }
+    package "com.uaigran.models.services" {
+        class AuthenticationServices {
+            IUserServices _userServices
+            IJwtService _jwtService
+            AuthenticationManager authenticationManager
+        }
+        class CommentServices {
+            ICommentRepository _commentRepository
+            IUserServices _userServices
+            IPostServices _postServices
+        }
+    }
+    User "1" -- "*" Post
+    User "1" -- "*" Comment
+    User "1" -- "*" Like
+    User "1" -- "*" Friend : owner
+    User "1" -- "*" Friend : friend
+    Post "1" -- "*" Comment
+    Post "1" -- "*" Like
+@enduml
+```
+
+### Diagrama de Sequência: Fluxo de Autenticação
+
+```plantuml
+@startuml
+
+participant User
+participant AuthenticationController
+participant IAuthenticationServices
+participant IUserServices
+participant IJwtService
+participant SecurityFilter
+
+User -> AuthenticationController: Post /authenticate
+AuthenticationController -> IAuthenticationServices: authenticate(request)
+IAuthenticationServices -> AuthenticationManager : authenticate(usernamePassword)
+AuthenticationManager -> IUserDetailsService : loadUserByUsername(username)
+IUserDetailsService -> IUserServices : findByEmail(username)
+IUserServices -> IAuthenticationServices: User
+IAuthenticationServices -> IJwtService: generateToken(user)
+IJwtService -> IAuthenticationServices: token
+IAuthenticationServices -> AuthenticationController: ResponseEntity(token)
+AuthenticationController -> User: token
+
+@enduml
+```
+
+### Diagrama de Sequência: Criação de Comentário
+
+```plantuml
+@startuml
+
+participant User
+participant CommentController
+participant ICommentServices
+participant IUserServices
+participant IPostServices
+participant ICommentRepository
+
+User -> CommentController: Post /comment/create
+CommentController -> ICommentServices: createComment(request)
+ICommentServices -> IUserServices: getUserById(user_id)
+IUserServices -> ICommentServices: User
+ICommentServices -> IPostServices: getPostById(post_id)
+IPostServices -> ICommentServices: Post
+ICommentServices -> ICommentRepository: save(comment)
+ICommentRepository -> ICommentServices: Comment
+ICommentServices -> CommentController: ResponseEntity(Comment)
+CommentController -> User: ResponseEntity(Comment)
+
+@enduml
+```
+
+## Conclusão
+
+O projeto "Uaigran Social Network API" é uma aplicação completa e bem estruturada que cobre diversas funcionalidades comuns em redes sociais. Com o uso do Spring Boot e a organização de pacotes claros, a aplicação é escalável e fácil de manter. A configuração de segurança com JWT e a documentação da API com Swagger garantem uma integração segura e eficiente com outras aplicações.
+
+Note que este documento é uma visão geral simplificada do que o código poderia ser. Para mais detalhes, cada classe e método deve ser estudado em profundidade, e os diagramas mais detalhados podem ser gerados usando ferramentas apropriadas e inspecionando o código detalhadamente.
+
